@@ -49,7 +49,7 @@ class Location(models.Model):
         if not self.slug:
             self.slug = make_unique_slug(Location,self.name)
 
-        super().save(*args,**kwargs)
+        super().save(*args,**kwarge)
 
     def __str__(self):
         return self.name
@@ -96,7 +96,7 @@ class Property(models.Model):
         if not self.slug:
             self.slug = make_unique_slug(Property,f"{self.title}-{self.location.name}")
 
-        super().save(*args,**kwargs)
+        super().save(*args,**kwarge)
 
     def __str__(self):
         return f"{self.title}-{self.location.name}"
