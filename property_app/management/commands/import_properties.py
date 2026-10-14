@@ -2,7 +2,9 @@ import pandas as pd
 from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand,CommandError
 from django.conf import settings
-from property_app.models import Location,Property
+from property_app.models import Location,Property,PropertyImage
+import urllib.request
+from django.core.files.base import ContentFile
 from pathlib import Path
 
 REQUIRED = [
@@ -63,6 +65,48 @@ class Command(BaseCommand):
             return None
         return Point(float(lng),float(lat),srid=4326)
 
+    def download_image(self,url):
+        """ Download Images from url """
+
+        try :
+            req = urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
+            with urllib.request.urlopen(req,timeout=20) as resp:
+                return resp.read()
+
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"Image download fail:{url} ({e})"))
+            return None
+
+    def add_images(self,prop,url_text):
+        """ download images from url and create PropertyImage"""
+
+        if prop.images.exists():
+            return 0
+
+        urls = [u.strip() for u in str(url_text).split("|") if u.strip().startswith("http")]
+        added = 0
+
+        for i,url in enumerate(urls):
+            data = self.download_image(url)
+
+            if not data:
+                continue
+
+            img = PropertyImage(
+                property = prop,
+                alt_text = f"{prop.title} - photo{i+1}",
+                is_primary=(i==0),
+                sort_order=i,
+            )
+
+            try:
+                img.image.save(f"{prop.slug} - {i+1}.jpg",ContentFile(data),save=True)
+                added += 1
+
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Image saved failed:{url} ({e})"))
+        return added
+
     # ---------Main Task---------
 
     def handle(self,*args,**options):
@@ -92,13 +136,13 @@ class Command(BaseCommand):
         
         # 2. Property : location + title
 
-        created = updated = 0
+        created = updated = images_added = 0
 
         for r in df.itertuples():
 
             loc = loc_map[r.location_name]
 
-            _,is_new = Property.objects.update_or_create(
+            prop,is_new = Property.objects.update_or_create(
                 location=loc,
                 title=r.title,
                 defaults=dict(
@@ -115,12 +159,12 @@ class Command(BaseCommand):
                 )
 
             )
-
+            images_added += self.add_images(prop,getattr(r,"image_urls",""))
             created += is_new
             updated += not is_new
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"End : {len(loc_map)} location, {created} new property, {updated} updated"
+                f"End : {len(loc_map)} location, {created} new property, {updated} updated , {images_added} images"
             )
         )

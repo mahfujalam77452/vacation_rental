@@ -144,7 +144,7 @@ class PropertyImage(models.Model):
         if  self.image and not self.file_size:
             self.file_size = self.image.size
 
-        super().save(*args,**kwargs)
+        super().save(*args,**kwarge)
 
     def __str__(self):
         return f"Image of {self.property.title}"
