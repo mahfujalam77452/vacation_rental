@@ -1,7 +1,8 @@
 from django.contrib.gis.db import models
 from django.utils.text import slugify
 from pgvector.django import VectorField
-
+from django.core.paginator import Paginator
+from django.db.models import Q
 # Create your models here.
 
 # Making a unique slug bere save the item
@@ -97,6 +98,15 @@ class Property(models.Model):
             self.slug = make_unique_slug(Property,f"{self.title}-{self.location.name}")
 
         super().save(*args,**kwarge)
+
+    @property
+    def primary_image(self):
+        images= list(self.images.all())
+
+        for img in images:
+            if img.is_primary:
+                return img
+        return images[0] if images else None
 
     def __str__(self):
         return f"{self.title}-{self.location.name}"
