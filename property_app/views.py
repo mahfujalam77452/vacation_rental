@@ -29,7 +29,7 @@ class AutocompleteAPIView(APIView):
 
         query = AutocompleteQuerySerializer(data=request.query_params)
 
-        query.is_valid(raise_excepton=True)
+        query.is_valid(raise_exception=True)
         q = query.validated_data["q"]
 
         locations = Location.objects.filter(is_active=True,name__icontains=q)[:5]
