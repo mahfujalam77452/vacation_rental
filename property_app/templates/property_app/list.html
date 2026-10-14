@@ -1,0 +1,121 @@
+
+{% extends "property_app/base.html" %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block extra_css %}
+<style>
+  .top { margin-bottom: 24px; }
+  .error { color: #c00; margin-top: 8px; text-align: center; }
+  .summary { margin: 20px 0; color: #444; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .card img, .noimg { width: 100%; height: 200px; object-fit: cover; display: block; }
+  .noimg { background: #dde1e6; display: flex; align-items: center; justify-content: center; color: #777; }
+  .card-body { padding: 14px; }
+  .card h3 { margin: 0 0 4px; font-size: 18px; }
+  .loc { color: #666; font-size: 14px; margin-bottom: 8px; }
+  .meta { color: #555; font-size: 14px; }
+  .price { font-weight: bold; font-size: 17px; margin-top: 10px; }
+  .featured { background: #ffc107; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+  .pager { display: flex; justify-content: center; align-items: center; gap: 16px; margin: 32px 0; }
+  .pager a, .pager span.btn { padding: 8px 18px; border-radius: 6px; background: #0b5ed7; color: #fff; text-decoration: none; }
+  .pager span.btn { background: #ccc; }
+  .none { text-align: center; padding: 40px; color: #666; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="top">
+  {% include "property_app/_search_box.html" %}
+
+  {% for field, errs in form.errors.items %}
+    {% for e in errs %}
+      <div class="error">{{ e }}</div>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+{% if form.is_valid %}
+  <div class="summary">
+    <strong>{{ total }}</strong> properties found
+    {% if search_type == "location" %}
+      (by location)
+    {% elif search_type == "property" %}
+      (by property)
+    {% else %}
+      (for "{{ form.cleaned_data.q }}")
+    {% endif %}
+  </div>
+
+  {% if page_obj.object_list %}
+    <div class="grid">
+      {% for p in page_obj %}
+        <div class="card">
+          {% if p.primary_image %}
+            <img src="{{ p.primary_image.image.url }}"
+                 alt="{{ p.primary_image.alt_text|default:p.title }}">
+          {% else %}
+            <div class="noimg">No image available</div>
+          {% endif %}
+
+          <div class="card-body">
+            <h3>
+              {{ p.title }}
+              {% if p.is_featured %}
+                <span class="featured">Featured</span>
+              {% endif %}
+            </h3>
+
+            <div class="loc">{{ p.location.name }}</div>
+
+            <div class="meta">
+              {{ p.property_type }} ·
+              {{ p.bedrooms }} beds ·
+              {{ p.bathrooms }} baths
+            </div>
+
+            <div class="price">
+              ${{ p.price|floatformat:0 }} / night
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="pager">
+        {% if page_obj.has_previous %}
+          <a href="?{{ query_string }}&page={{ page_obj.previous_page_number }}">
+            Previous
+          </a>
+        {% else %}
+          <span class="btn">Previous</span>
+        {% endif %}
+
+        <span>
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+          <a href="?{{ query_string }}&page={{ page_obj.next_page_number }}">
+            Next
+          </a>
+        {% else %}
+          <span class="btn">Next</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="none">
+      No properties found. Try searching for something else.
+    </div>
+  {% endif %}
+
+{% elif not request.GET %}
+  <div class="none">
+    Enter a search term in the box above to find properties.
+  </div>
+{% endif %}
+{% endblock %}

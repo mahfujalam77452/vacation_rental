@@ -1,0 +1,111 @@
+<style>
+  .search-box { position: relative; max-width: 600px; margin: 0 auto; text-align: left; }
+  .search-row { display: flex; gap: 8px; }
+  #search-input { flex: 1; padding: 14px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+  .search-row button { padding: 14px 24px; background: #0b5ed7; color: #fff; border: 0; border-radius: 6px; font-size: 16px; cursor: pointer; }
+  #suggestions { position: absolute; top: 56px; left: 0; right: 100px; background: #fff; border: 1px solid #ddd; border-radius: 6px; z-index: 10; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+  .item { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  .item:hover { background: #f0f5ff; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; color: #fff; min-width: 70px; text-align: center; }
+  .badge.location { background: #198754; }
+  .badge.property { background: #0b5ed7; }
+  .sub { color: #777; font-size: 13px; }
+  .empty { padding: 12px 14px; color: #777; }
+</style>
+
+<form method="get" action="{% url 'property_list' %}" class="search-box" id="search-form">
+  <div class="search-row">
+    {{ form.q }}
+    {{ form.search_type }}
+    {{ form.object_id }}
+    <button type="submit">Search</button>
+  </div>
+  <div id="suggestions"></div>
+</form>
+
+<script>
+  const input = document.getElementById("search-input");
+  const box = document.getElementById("suggestions");
+  const typeField = document.getElementById("id_search_type");
+  const idField = document.getElementById("id_object_id");
+  const form = document.getElementById("search-form");
+  const API_URL = "{% url 'api_autocomplete' %}";
+  const DEBOUNCE_MS = 300;
+
+  let timer = null;
+  let controller = null;
+
+  // elemenate the previous selection
+  input.addEventListener("input", () => {
+    typeField.value = "text";
+    idField.value = "";
+
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { hideBox(); return; }
+
+    // Debounce: 300 ms for each API call
+    timer = setTimeout(() => fetchSuggestions(q), DEBOUNCE_MS);
+  });
+
+  async function fetchSuggestions(q) {
+    if (controller) controller.abort();
+    controller = new AbortController();
+    try {
+      const res = await fetch(`${API_URL}?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+      if (!res.ok) { hideBox(); return; }
+      const data = await res.json();
+      render(data.results);
+    } catch (e) {
+      if (e.name !== "AbortError") hideBox();
+    }
+  }
+
+  function render(results) {
+    box.innerHTML = "";
+    if (!results.length) {
+      const d = document.createElement("div");
+      d.className = "empty";
+      d.textContent = "get nothing";
+      box.appendChild(d);
+    }
+    results.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const badge = document.createElement("span");
+      badge.className = "badge " + r.type;
+      badge.textContent = r.type === "location" ? "Location" : "Property";
+
+      const text = document.createElement("div");
+      const name = document.createElement("div");
+      name.textContent = r.name;
+      text.appendChild(name);
+      if (r.type === "property" && r.location) {
+        const sub = document.createElement("div");
+        sub.className = "sub";
+        sub.textContent = r.location;
+        text.appendChild(sub);
+      }
+
+      row.append(badge, text);
+      row.addEventListener("click", () => select(r));
+      box.appendChild(row);
+    });
+    box.style.display = "block";
+  }
+
+  function select(r) {
+    input.value = r.name;
+    typeField.value = r.type;
+    idField.value = r.id;
+    hideBox();
+    form.submit();
+  }
+
+  function hideBox() { box.style.display = "none"; }
+
+  document.addEventListener("click", e => {
+    if (!form.contains(e.target)) hideBox();
+  });
+</script>

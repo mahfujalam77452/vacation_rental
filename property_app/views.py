@@ -106,7 +106,7 @@ def property_list(request):
         properties = qs.order_by(*ordering)
 
     paginator = Paginator(properties,6)
-    page_obj = paginator.get_page(request.Get.get("page"))
+    page_obj = paginator.get_page(request.GET.get("page"))
 
     params = request.GET.copy()
 
