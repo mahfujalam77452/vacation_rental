@@ -10,6 +10,11 @@ from .serializers import AutocompleteQuerySerializer,SuggestionSerializer
 from django.core.paginator import Paginator
 from django.db.models import Q,Case,IntegerField,When
 
+from django.contrib.gis.db.models.functions import Distance
+from django.shortcuts import get_object_or_404,render
+from django.contrib.gis.measure import D
+
+
 def home(request):
     return render(request,"property_app/home.html",{"form":SearchForm()})
 
@@ -20,6 +25,8 @@ def property_list(request):
     if not form.is_valid():
         return HttpResponse(f"Invalid: {form.errors.as_json()}",status=400)
     return HttpResponse(f"OK:{form.cleaned_data}")
+
+
 
 
 class AutocompleteAPIView(APIView):
@@ -49,6 +56,8 @@ class AutocompleteAPIView(APIView):
         ]
 
         return Response({"results": SuggestionSerializer(results,many=True).data})
+
+
 
 
 def property_list(request):
@@ -121,3 +130,60 @@ def property_list(request):
             "query_string":params.urlencode(),
         }
     )
+
+
+def split_description(text):
+    """ Split amenities from description"""
+
+    if "Amenities:" not in text :
+
+        return text, []
+
+    main, amenities = text.split("Amenities:",1)
+
+    items = [aminity.strip() for aminity in amenities.strip().rstrip(".").split(",") if amenity.strip()  ]
+
+    return main.strip(), items
+
+def property_detail(request,slug):
+
+    prop = get_object_or_404(
+        Property.objects.filter(is_active=True)
+        .select_related("location")
+        .prefetch_related("images")
+        # distance between two geography point
+        .annotate(distance=Distance("point","location__point")),
+        slug=slug,
+    )
+
+    # if any of these points not exists the distance will None
+
+    distance_km = round(prop.distance.km,1) if prop.distance is not None else None
+    description,amenities = split_description(prep.description)
+    
+
+    # NearBy Propery : within 15 km , nearest property first, atmost 4 propeties
+    nearby = []
+
+    if prop.point:
+        nearby = (
+            Property.objects.filter(
+                is_active=True,
+                point__dwithin=(prop.point,D(km=15)),
+            )
+        ).exclude(id=prob.id)
+        .select_related("location")
+        .prefetch_related("images")
+        .annotate(distance=Distance("point",prop.point))
+        .order_by("distance")[:4]
+
+
+
+    return render(request,"property_app/detail.html",{
+        "prop":prop,
+        "images":list(prob.images.all()),
+        "description":descripton,
+        "amenities":amenities,
+        "distance_km":distance_km,
+        "nearby":nearby,
+    })
