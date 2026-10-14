@@ -141,7 +141,7 @@ def split_description(text):
 
     main, amenities = text.split("Amenities:",1)
 
-    items = [aminity.strip() for aminity in amenities.strip().rstrip(".").split(",") if amenity.strip()  ]
+    items = [aminity.strip() for aminity in amenities.strip().rstrip(".").split(",") if amenities.strip()  ]
 
     return main.strip(), items
 
@@ -158,8 +158,8 @@ def property_detail(request,slug):
 
     # if any of these points not exists the distance will None
 
-    distance_km = round(prop.distance.km,1) if prop.distance is not None else None
-    description,amenities = split_description(prep.description)
+    distance_km = (round(prop.distance.km,1) if prop.distance is not None else None)
+    description,amenities = split_description(prop.description)
     
 
     # NearBy Propery : within 15 km , nearest property first, atmost 4 propeties
@@ -171,18 +171,19 @@ def property_detail(request,slug):
                 is_active=True,
                 point__dwithin=(prop.point,D(km=15)),
             )
-        ).exclude(id=prob.id)
+        .exclude(id=prop.id)
         .select_related("location")
         .prefetch_related("images")
         .annotate(distance=Distance("point",prop.point))
         .order_by("distance")[:4]
+        )
 
 
 
     return render(request,"property_app/detail.html",{
         "prop":prop,
-        "images":list(prob.images.all()),
-        "description":descripton,
+        "images":list(prop.images.all()),
+        "description":description,
         "amenities":amenities,
         "distance_km":distance_km,
         "nearby":nearby,
