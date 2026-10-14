@@ -1,3 +1,4 @@
+from django.contrib.gis.admin import GISModelAdmin
 from django.contrib import admin
 from django.utils.html import format_html
 
@@ -57,7 +58,7 @@ class HasImageFilter(admin.SimpleListFilter):
 
 # -----Location ---------
 @admin.register(Location)
-class LocationAdmin(admin.GISModelAdmin):
+class LocationAdmin(GISModelAdmin):
     list_display = ("name","city","state","country","is_active","property_count")
     list_filter = ("country","state","is_active")
     search_fields = ("name","city","state","country")
@@ -82,7 +83,7 @@ class PropertyImageInline(admin.TabularInline):
 
 # ------ Property --------
 @admin.register(Property)
-class PropertyAdmin(admin.GISModelAdmin):
+class PropertyAdmin(GISModelAdmin):
     list_display = (
         "thumbnail", "title","location","property_type",
         "price","bedrooms","is_featured","is_active",
