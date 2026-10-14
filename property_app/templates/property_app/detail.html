@@ -1,0 +1,135 @@
+
+{% extends "property_app/base.html" %}
+
+{% block title %}{{ prop.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .back { display: inline-block; margin-bottom: 16px; color: #0b5ed7; text-decoration: none; }
+  .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+  @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .main-img, .noimg { width: 100%; height: 420px; object-fit: cover; border-radius: 8px; display: block; }
+  .noimg { background: #dde1e6; display: flex; align-items: center; justify-content: center; color: #777; }
+  .thumbs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .thumbs img { width: 90px; height: 64px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
+  .thumbs img.active { border-color: #0b5ed7; }
+  h1 { margin: 20px 0 4px; }
+  .loc { color: #666; margin-bottom: 16px; }
+  .price { font-size: 26px; font-weight: bold; margin-bottom: 16px; }
+  .price small { font-size: 14px; font-weight: normal; color: #666; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 8px 0; border-bottom: 1px solid #eee; }
+  td:last-child { text-align: right; font-weight: bold; }
+  h3 { margin-top: 0; }
+  .amenities { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
+  .amenities li { background: #e7f1ff; color: #0b5ed7; padding: 6px 12px; border-radius: 16px; font-size: 14px; }
+  .distance { background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+  .section { margin-top: 24px; }
+  .nearby-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .n-card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.1); text-decoration: none; color: inherit; display: block; }
+  .n-card img, .n-noimg { width: 100%; height: 130px; object-fit: cover; display: block; }
+  .n-noimg { background: #dde1e6; display: flex; align-items: center; justify-content: center; color: #777; font-size: 14px; }
+  .n-body { padding: 10px 12px; }
+  .n-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+  .n-meta { color: #666; font-size: 13px; }
+  .n-dist { color: #198754; font-size: 13px; margin-top: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="back" href="javascript:history.back()">&larr; Back to Results</a>
+
+<div class="layout">
+  <div>
+    {% if images %}
+      <img id="main-img" class="main-img" src="{{ images.0.image.url }}" alt="{{ images.0.alt_text|default:prop.title }}">
+      {% if images|length > 1 %}
+        <div class="thumbs">
+          {% for img in images %}
+            <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:prop.title }}"
+                 class="{% if forloop.first %}active{% endif %}">
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="noimg">No Image Available</div>
+    {% endif %}
+
+    <h1>{{ prop.title }}</h1>
+    <div class="loc">{{ prop.location.name }}{% if prop.address %} · {{ prop.address }}{% endif %}</div>
+
+    <div class="panel section">
+      <h3>Description</h3>
+      <p>{{ description|default:"No description available." }}</p>
+    </div>
+
+    {% if amenities %}
+    <div class="panel section">
+      <h3>Amenities</h3>
+      <ul class="amenities">
+        {% for a in amenities %}<li>{{ a }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if nearby %}
+    <div class="section">
+      <h3>More Nearby Properties</h3>
+      <div class="nearby-grid">
+        {% for n in nearby %}
+          <a class="n-card" href="{% url 'property_detail' n.slug %}">
+            {% if n.primary_image %}
+              <img src="{{ n.primary_image.image.url }}" alt="{{ n.title }}">
+            {% else %}
+              <div class="n-noimg">No Image Available</div>
+            {% endif %}
+            <div class="n-body">
+              <div class="n-title">{{ n.title }}</div>
+              <div class="n-meta">{{ n.bedrooms }} bed · ${{ n.price|floatformat:0 }} / night</div>
+              <div class="n-dist">📍 {{ n.distance.km|floatformat:1 }} km away</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="price">${{ prop.price|floatformat:0 }} <small>/ night</small></div>
+
+      <div class="distance">
+        {% if distance_km is not None %}
+          📍 <strong>{{ prop.location.city }}</strong> city center: <strong>{{ distance_km }} km away</strong>
+        {% else %}
+          📍 Distance information is unavailable
+        {% endif %}
+      </div>
+
+      <table>
+        <tr><td>Type</td><td>{{ prop.property_type }}</td></tr>
+        <tr><td>Bedrooms</td><td>{{ prop.bedrooms }}</td></tr>
+        <tr><td>Bathrooms</td><td>{{ prop.bathrooms }}</td></tr>
+        <tr><td>Area</td><td>{% if prop.area_sqft %}{{ prop.area_sqft|floatformat:0 }} sqft{% else %}-{% endif %}</td></tr>
+        <tr><td>Status</td><td>{{ prop.status|title }}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Clicking a thumbnail changes the main image.
+  const main = document.getElementById("main-img");
+  document.querySelectorAll(".thumbs img").forEach(t => {
+    t.addEventListener("click", () => {
+      main.src = t.src;
+      document.querySelectorAll(".thumbs img").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+    });
+  });
+</script>
+{% endblock %}
