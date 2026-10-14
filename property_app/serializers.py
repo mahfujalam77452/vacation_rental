@@ -9,7 +9,7 @@ class SuggestionSerializer(serializers.Serializer):
 
     """ API response field """
 
-    type = serializers.ChoiceField(choice = ["location","property"])
+    type = serializers.ChoiceField(choices = ["location","property"])
     id = serializers.IntegerField()
     name = serializers.CharField()
     location = serializers.CharField(required=False,allow_blank=True)
