@@ -14,6 +14,9 @@ from django.contrib.gis.db.models.functions import Distance
 from django.shortcuts import get_object_or_404,render
 from django.contrib.gis.measure import D
 
+from .search import autocomplete,search_locations,search_properties
+
+
 
 def home(request):
     return render(request,"property_app/home.html",{"form":SearchForm()})
@@ -36,27 +39,12 @@ class AutocompleteAPIView(APIView):
     def get(self,request):
 
         query = AutocompleteQuerySerializer(data=request.query_params)
-
         query.is_valid(raise_exception=True)
         q = query.validated_data["q"]
 
-        locations = Location.objects.filter(is_active=True,name__icontains=q)[:5]
+        results = autocomplete(q)
 
-        properties = (
-            Property.objects.filter(is_active=True,title__icontains=q)
-            .select_related("location")[:5]
-        
-        )
-
-        results = [
-            {"type":"location","id":location.id,"name":location.name} for location in locations
-        ] + [
-            {"type":"property","id":property.id,"name":property.title,"location":property.location.name}
-            for property in properties
-        ]
-
-        return Response({"results": SuggestionSerializer(results,many=True).data})
-
+        return Response({"results":SuggestionSerializer(results,many=True).data})
 
 
 
@@ -108,8 +96,18 @@ def property_list(request):
                 qs = qs.none()
 
         else:
-            #for day 3 semantics
-            pass
+            # for general text
+
+            loc_ids = [l.id for l in search_locations(q,limit=3)]
+            prop_ids = [p.id for p in search_properties(q,limit=20)]
+
+            qs = qs.filter(
+                Q(title__icontains=q)
+                | Q(location__name__icontains=q)
+                | Q(location__city__icontains=q)
+                | Q(location_id__in=loc_ids)
+                | Q(id__in=prop_ids)
+            )
 
         
         properties = qs.order_by(*ordering)
