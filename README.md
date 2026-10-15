@@ -42,6 +42,8 @@ sudo apt install -y gdal-bin libgdal-dev libgeos-dev libproj-dev python3-venv py
 ### 2. Start the database
 
 ```bash
+git clone https://github.com/mahfujalam77452/vacation_rental
+cd vacation_rental
 docker compose up -d --build
 docker compose ps
 ```
