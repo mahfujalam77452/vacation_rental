@@ -107,7 +107,7 @@ class PropertyAdmin(GISModelAdmin):
     list_select_related = ("location",)
     prefetch_related = ("images",)
     exclude = ("embedding",)
-    inline = [PropertyImageInline]
+    inlines = [PropertyImageInline]
 
     def get_queryset(self,request):
 
