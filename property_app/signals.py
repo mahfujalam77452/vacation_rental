@@ -1,7 +1,7 @@
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from .embeddings import embed_text
+from .embeddings import embed_texts
 from .models import Location,Property
 
 def _text_changed(model, instance,field):

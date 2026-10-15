@@ -11,7 +11,7 @@ def get_model():
     from sentence_transformers import SentenceTransformer
     return SentenceTransformer(MODEL_NAME)
 
-def debed_text(text):
+def embed_text(text):
     """ A text to 384 dimensions vector"""
     return get_model().encode(text.strip(),normalize_embeddings=True).tolist()
 

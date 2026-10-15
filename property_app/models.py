@@ -3,6 +3,7 @@ from django.utils.text import slugify
 from pgvector.django import VectorField
 from django.core.paginator import Paginator
 from django.db.models import Q
+from pgvector.django import HnswIndex,VectorField
 # Create your models here.
 
 # Making a unique slug bere save the item
@@ -44,6 +45,17 @@ class Location(models.Model):
     is_active = models.BooleanField(default = True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            HnswIndex(
+                name = "location_embedding_hnsw",
+                fields=["embedding"],
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            )
+        ]
 
     def save(self,*args,**kwarge):
 
@@ -91,6 +103,15 @@ class Property(models.Model):
 
     class Meta:
         verbose_name_plural = "properties"
+        indexes = [
+            HnswIndex(
+                name="property_embedding_hnsw",
+                fields=["embedding"],
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            )
+        ]
 
     def save(self,*args,**kwarge):
 
