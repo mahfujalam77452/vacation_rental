@@ -14,6 +14,8 @@ REQUIRED = [
 
 class Command(BaseCommand):
 
+    _cache = {}
+
     def read_file(self,path):
 
         path=str(path)
@@ -68,10 +70,15 @@ class Command(BaseCommand):
     def download_image(self,url):
         """ Download Images from url """
 
+        if url in self._cache:
+            return self._cache[url]
+
         try :
             req = urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
             with urllib.request.urlopen(req,timeout=20) as resp:
-                return resp.read()
+                data = resp.read()
+                self._cache[url] = data
+                return data
 
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"Image download fail:{url} ({e})"))
